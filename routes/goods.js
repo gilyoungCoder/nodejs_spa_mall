@@ -17,18 +17,6 @@ router.get("/goods", async (req, res) => {
 });
 
 
-
-router.get("/goods/:goodsId", async (req, res) => {
-  //:1234 => 해당 값이 goddsId가 된다.
-  const { goodsId } = req.params; 
-
-  const [detail] = await Goods.find({ goodsId: Number(goodsId) });
-
-  res.json({
-    detail,
-  });
-});
-
 router.get("/goods/cart", async (req, res) => {
   const carts = await Cart.find();
   const goodsIds = carts.map((cart)=> cart.goodsId);
@@ -36,13 +24,26 @@ router.get("/goods/cart", async (req, res) => {
   const goods = await Goods.find({goodsId: goodsIds}) // 배열이 들어가면 배열에 속한 id랑 매치하는 Goods 여러개 반환
   
   res.json({
-      carts: carts.map((cart) =>
+      cart: carts.map((cart) =>
           ({
               quantity: cart.quantity,
               goods: goods.find((item) => item.goodsId === cart.goodsId),
           })),
   });
 });
+
+
+router.get("/goods/:goodsId", async (req, res) => {
+  //:1234 => 해당 값이 goddsId가 된다.
+  const { goodsId } = req.params; 
+
+  const [goods] = await Goods.find({ goodsId: Number(goodsId) });
+
+  res.json({
+    goods,
+  });
+});
+
 
 
 
@@ -79,14 +80,16 @@ router.put("/goods/:goodsId/cart", async(req, res) => {
 
   const existsCarts = await Cart.find({goodsId : Number(goodsId)});
   if(!existsCarts.length){
-    return res.status(400).json({succes: false, errorMessage: "장바구니에 해당 상품이 없습니다."});
+    await Cart.create({goodsId: Number(goodsId), quantity});
   }
 
   if(quantity<1){
-    return res.status(400).json({succes: false, errorMessage: "최소 한 개 이상의 상품을 주문해야 합니다."});
+    await Cart.create({goodsId: Number(goodsId), quantity});
   }
-  
+
+  else{
   await Cart.updateOne({goodsId: Number(goodsId)}, { $set: { quantity } });
+  }
   res.json({ success:true});
 })
 
